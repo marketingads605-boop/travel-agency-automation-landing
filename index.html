@@ -832,18 +832,25 @@
     }
 
     .form-note,
-    .success-message {
+    .success-message,
+    .error-message {
       font-size: 0.92rem;
     }
 
-    .success-message {
+    .success-message,
+    .error-message {
       display: none;
-      color: var(--accent);
       font-weight: 600;
     }
 
     .success-message.show {
       display: block;
+      color: var(--accent);
+    }
+
+    .error-message.show {
+      display: block;
+      color: #ff8e8e;
     }
 
     .footer {
@@ -1360,7 +1367,10 @@
           </div>
 
           <div class="contact-form-card reveal">
-            <form id="contactForm">
+            <form id="contactForm" action="https://formsubmit.co/wssmaidat@gmail.com" method="POST" target="formSubmitFrame" novalidate>
+              <input type="hidden" name="_subject" value="Nouveau lead depuis le site Wassim Aidat">
+              <input type="hidden" name="_captcha" value="false">
+              <input type="hidden" name="_template" value="table">
               <div class="form-grid">
                 <label>
                   <span data-i18n="formName">Nom</span>
@@ -1396,7 +1406,9 @@
               <button class="btn btn-primary" type="submit" data-i18n="formSubmit">Envoyer ma demande</button>
               <p class="form-note" data-i18n="formNote">Réponse sous 24h ouvrées. Si votre besoin est urgent, WhatsApp reste le plus rapide.</p>
               <p class="success-message" id="formSuccess" data-i18n="formSuccess">Message reçu. Je reviens vers vous rapidement.</p>
+              <p class="error-message" id="formError" data-i18n="formError">L'envoi a échoué. Réessayez ou contactez-moi directement sur WhatsApp.</p>
             </form>
+            <iframe name="formSubmitFrame" title="Form submission" class="sr-only"></iframe>
           </div>
         </div>
       </section>
@@ -1567,6 +1579,7 @@
         formSubmit: "Envoyer ma demande",
         formNote: "Réponse sous 24h ouvrées. Si votre besoin est urgent, WhatsApp reste le plus rapide.",
         formSuccess: "Message reçu. Je reviens vers vous rapidement.",
+        formError: "L'envoi a échoué. Réessayez ou contactez-moi directement sur WhatsApp.",
         footerTagline: "Publicités & Automation — Résultats mesurables",
         footerHome: "Accueil",
         footerServices: "Services",
@@ -1701,6 +1714,7 @@
         formSubmit: "Send my request",
         formNote: "Reply within 24 business hours. If your need is urgent, WhatsApp is the fastest route.",
         formSuccess: "Message received. I'll get back to you shortly.",
+        formError: "Sending failed. Please try again or contact me directly on WhatsApp.",
         footerTagline: "Ads & Automation — Measurable results",
         footerHome: "Home",
         footerServices: "Services",
@@ -1716,6 +1730,9 @@
     const revealNodes = document.querySelectorAll(".reveal");
     const contactForm = document.getElementById("contactForm");
     const formSuccess = document.getElementById("formSuccess");
+    const formError = document.getElementById("formError");
+    const formSubmitFrame = document.querySelector('iframe[name="formSubmitFrame"]');
+    let pendingFormSubmit = false;
 
     function formatStatValue(value, decimals) {
       if (decimals > 0) {
@@ -1838,6 +1855,43 @@
 
     contactForm.addEventListener("submit", (event) => {
       event.preventDefault();
+      formSuccess.classList.remove("show");
+      formError.classList.remove("show");
+
+      if (!contactForm.reportValidity()) {
+        return;
+      }
+
+      const submitButton = contactForm.querySelector('button[type="submit"]');
+      const currentLang = document.documentElement.lang === "en" ? "en" : "fr";
+      const defaultLabel = translations[currentLang].formSubmit;
+      submitButton.disabled = true;
+      submitButton.textContent = currentLang === "en" ? "Sending..." : "Envoi en cours...";
+      pendingFormSubmit = true;
+      contactForm.submit();
+
+      window.setTimeout(() => {
+        if (!pendingFormSubmit) {
+          return;
+        }
+
+        pendingFormSubmit = false;
+        submitButton.disabled = false;
+        submitButton.textContent = defaultLabel;
+        formError.classList.add("show");
+      }, 10000);
+    });
+
+    formSubmitFrame.addEventListener("load", () => {
+      if (!pendingFormSubmit) {
+        return;
+      }
+
+      pendingFormSubmit = false;
+      const currentLang = document.documentElement.lang === "en" ? "en" : "fr";
+      const submitButton = contactForm.querySelector('button[type="submit"]');
+      submitButton.disabled = false;
+      submitButton.textContent = translations[currentLang].formSubmit;
       formSuccess.classList.add("show");
       contactForm.reset();
 
